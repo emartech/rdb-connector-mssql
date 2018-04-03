@@ -1,0 +1,5 @@
+- type: serial
+  service: rdb-connector-mssql
+  steps:
+  - command: sbt test
+  - command: sbt it:test
