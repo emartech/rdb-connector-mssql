@@ -24,7 +24,8 @@ class MsSqlConnector(
                     ) extends Connector
   with MsSqlTestConnection
   with MsSqlMetadata
-  with MsSqlSimpleSelect {
+  with MsSqlSimpleSelect
+  with MsSqlRawSelect {
 
   override def close(): Future[Unit] = db.shutdown
 
