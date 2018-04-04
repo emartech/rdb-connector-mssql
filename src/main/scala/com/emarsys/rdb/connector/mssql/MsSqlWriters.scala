@@ -1,12 +1,25 @@
 package com.emarsys.rdb.connector.mssql
 
 import com.emarsys.rdb.connector.common.defaults.{DefaultSqlWriters, SqlWriter}
+import com.emarsys.rdb.connector.common.defaults.SqlWriter._
+
+import com.emarsys.rdb.connector.common.models.SimpleSelect
 import com.emarsys.rdb.connector.common.models.SimpleSelect.{FieldName, TableName, Value}
 
 trait MsSqlWriters extends DefaultSqlWriters {
   override implicit lazy val tableNameWriter: SqlWriter[TableName] = (tableName: TableName) => msSqlNameWrapper(tableName.t)
   override implicit lazy val fieldNameWriter: SqlWriter[FieldName] = (fieldName: FieldName) => msSqlNameWrapper(fieldName.f)
   override implicit lazy val valueWriter: SqlWriter[Value] = (value: Value) => msSqlValueQuoter(Option(value.v))
+
+  override implicit lazy val simpleSelectWriter: SqlWriter[SimpleSelect] = (ss: SimpleSelect) => {
+    val distinct = if(ss.distinct.getOrElse(false)) "DISTINCT " else ""
+    val limit = ss.limit.map("TOP " + _ + " ").getOrElse("")
+    val head = s"SELECT $distinct$limit${ss.fields.toSql} FROM ${ss.table.toSql}"
+
+    val where = ss.where.map(_.toSql).map(" WHERE " + _).getOrElse("")
+
+    s"$head$where"
+  }
 
   protected def msSqlNameWrapper(name: String): String = {
     s"[$name]"
