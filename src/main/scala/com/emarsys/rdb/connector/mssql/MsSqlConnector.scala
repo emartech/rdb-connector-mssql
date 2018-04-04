@@ -22,7 +22,8 @@ class MsSqlConnector(
                     )(
                       implicit val executionContext: ExecutionContext
                     ) extends Connector
-  with MsSqlTestConnection {
+  with MsSqlTestConnection
+  with MsSqlMetadata {
 
   override def close(): Future[Unit] = db.shutdown
 
