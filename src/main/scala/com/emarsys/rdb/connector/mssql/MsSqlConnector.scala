@@ -25,7 +25,8 @@ class MsSqlConnector(
   with MsSqlTestConnection
   with MsSqlMetadata
   with MsSqlSimpleSelect
-  with MsSqlRawSelect {
+  with MsSqlRawSelect
+  with MsSqlIsOptimized {
 
   override def close(): Future[Unit] = db.shutdown
 
