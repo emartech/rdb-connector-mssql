@@ -26,7 +26,10 @@ class MsSqlConnector(
   with MsSqlMetadata
   with MsSqlSimpleSelect
   with MsSqlRawSelect
-  with MsSqlIsOptimized {
+  with MsSqlIsOptimized
+  with MsSqlRawDataManipulation {
+
+  override protected val fieldValueConverters = MsSqlFieldValueConverters
 
   override def close(): Future[Unit] = db.shutdown
 
