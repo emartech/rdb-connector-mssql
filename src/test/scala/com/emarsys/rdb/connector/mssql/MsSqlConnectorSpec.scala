@@ -21,6 +21,7 @@ class MsSqlConnectorSpec extends WordSpecLike with Matchers with MockitoSugar {
       dbName = "database",
       dbUser = "me",
       dbPassword = "secret",
+      certificate = "cert",
       connectionParams = ";param1=asd"
     )
 
@@ -39,6 +40,30 @@ class MsSqlConnectorSpec extends WordSpecLike with Matchers with MockitoSugar {
         val exampleWithoutMark = exampleConnection.copy(connectionParams = "")
         MsSqlConnector.createUrl(exampleWithoutMark) shouldBe "jdbc:sqlserver://host:123;databaseName=database"
       }
+    }
+
+    "#checkSsl" should {
+
+      "return true if empty connection params" in {
+        MsSqlConnector.checkSsl("") shouldBe true
+      }
+
+      "return true if not contains ssl config" in {
+        MsSqlConnector.checkSsl("?param1=param&param2=param2") shouldBe true
+      }
+
+      "return false if contains encrypt=false" in {
+        MsSqlConnector.checkSsl("?param1=param&encrypt=false&param2=param2") shouldBe false
+      }
+
+      "return false if contains trustServerCertificate=true" in {
+        MsSqlConnector.checkSsl("?param1=param&trustServerCertificate=true&param2=param2") shouldBe false
+      }
+
+      "return false if contains trustStore=" in {
+        MsSqlConnector.checkSsl("?param1=param&trustStore=asd&param2=param2") shouldBe false
+      }
+
     }
 
     "#innerMetrics" should {

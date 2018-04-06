@@ -49,6 +49,20 @@ class MsSqlConnectorItSpec extends WordSpecLike with Matchers {
         connectorEither.left.get shouldBe an [ErrorWithMessage]
       }
 
+      "connect fail when wrong certificate" in {
+        val conn = testConnection.copy(certificate = "")
+        val connectorEither = Await.result(MsSqlConnector(conn)(AsyncExecutor.default()), 5.seconds)
+
+        connectorEither shouldBe Left(ErrorWithMessage("SSL Error"))
+      }
+
+      "connect fail when ssl disabled" in {
+        val conn = testConnection.copy(connectionParams = "encrypt=false")
+        val connectorEither = Await.result(MsSqlConnector(conn)(AsyncExecutor.default()), 5.seconds)
+
+        connectorEither shouldBe Left(ErrorWithMessage("SSL Error"))
+      }
+
     }
 
     "test connection" should {

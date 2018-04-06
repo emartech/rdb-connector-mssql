@@ -61,6 +61,7 @@ object MsSqlConnector extends MsSqlConnectorTrait {
                                     dbName: String,
                                     dbUser: String,
                                     dbPassword: String,
+                                    certificate: String,
                                     connectionParams: String
                                   ) extends ConnectionConfig {
 
@@ -82,28 +83,38 @@ trait MsSqlConnectorTrait extends ConnectorCompanion {
             connectorConfig: MsSqlConnectorConfig = defaultConfig
            )(executor: AsyncExecutor)
            (implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
+
+    val keystoreFilePathO = CertificateUtil.createKeystoreTempFileFromCertificateString(config.certificate)
     val poolName = UUID.randomUUID.toString
 
+    if (keystoreFilePathO.isEmpty || !checkSsl(config.connectionParams)) {
+      Future.successful(Left(ErrorWithMessage("SSL Error")))
+    } else {
+      val keystoreFilePath = keystoreFilePathO.get
 
-    val db = {
+      val db = {
 
-      val url = createUrl(config)
+        val url = createUrl(config)
 
-      val customDbConf = ConfigFactory.load()
-        .withValue("mssqldb.poolName", ConfigValueFactory.fromAnyRef(poolName))
-        .withValue("mssqldb.registerMbeans", ConfigValueFactory.fromAnyRef(true))
-        .withValue("mssqldb.properties.url", ConfigValueFactory.fromAnyRef(url))
-        .withValue("mssqldb.properties.user", ConfigValueFactory.fromAnyRef(config.dbUser))
-        .withValue("mssqldb.properties.password", ConfigValueFactory.fromAnyRef(config.dbPassword))
-        .withValue("mssqldb.properties.driver", ConfigValueFactory.fromAnyRef("slick.jdbc.SQLServerProfile"))
+        val customDbConf = ConfigFactory.load()
+          .withValue("mssqldb.poolName", ConfigValueFactory.fromAnyRef(poolName))
+          .withValue("mssqldb.registerMbeans", ConfigValueFactory.fromAnyRef(true))
+          .withValue("mssqldb.properties.url", ConfigValueFactory.fromAnyRef(url))
+          .withValue("mssqldb.properties.user", ConfigValueFactory.fromAnyRef(config.dbUser))
+          .withValue("mssqldb.properties.password", ConfigValueFactory.fromAnyRef(config.dbPassword))
+          .withValue("mssqldb.properties.driver", ConfigValueFactory.fromAnyRef("slick.jdbc.SQLServerProfile"))
+          .withValue("mssqldb.properties.properties.encrypt", ConfigValueFactory.fromAnyRef("true"))
+          .withValue("mssqldb.properties.properties.trustServerCertificate", ConfigValueFactory.fromAnyRef("false"))
+          .withValue("mssqldb.properties.properties.trustStore", ConfigValueFactory.fromAnyRef(keystoreFilePath))
 
-      Database.forConfig("mssqldb", customDbConf)
-    }
+        Database.forConfig("mssqldb", customDbConf)
+      }
 
-    checkConnection(db).map[Either[ConnectorError, MsSqlConnector]] { _ =>
-      Right(new MsSqlConnector(db, connectorConfig, poolName))
-    }.recover {
-      case _ => Left(ErrorWithMessage("Cannot connect to the sql server"))
+      checkConnection(db).map[Either[ConnectorError, MsSqlConnector]] { _ =>
+        Right(new MsSqlConnector(db, connectorConfig, poolName))
+      }.recover {
+        case _ => Left(ErrorWithMessage("Cannot connect to the sql server"))
+      }
     }
   }
 
@@ -120,6 +131,12 @@ trait MsSqlConnectorTrait extends ConnectorCompanion {
 
   private[mssql] def createUrl(config: MsSqlConnectionConfig) = {
     s"jdbc:sqlserver://${config.host}:${config.port};databaseName=${config.dbName}${safeConnectionParams(config.connectionParams)}"
+  }
+
+  private[mssql] def checkSsl(connectionParams: String): Boolean = {
+    !connectionParams.matches(".*encrypt=false.*") &&
+    !connectionParams.matches(".*trustServerCertificate=true.*") &&
+    !connectionParams.matches(".*trustStore=.*")
   }
 
   private[mssql] def safeConnectionParams(connectionParams: String) = {

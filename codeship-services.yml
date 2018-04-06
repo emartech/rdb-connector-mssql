@@ -18,3 +18,7 @@ services:
       MSSQL_USER: "it_test_user"
       MSSQL_PASSWORD: "it_test_PW_1!"
     cached: true
+    volumes:
+      - ./mssql/mssql.conf:/var/opt/mssql/mssql.conf:ro
+      - ./mssql/mssql_db.key:/etc/ssl/private/mssql.key:ro
+      - ./mssql/mssql_db.pem:/etc/ssl/certs/mssql.pem:ro
