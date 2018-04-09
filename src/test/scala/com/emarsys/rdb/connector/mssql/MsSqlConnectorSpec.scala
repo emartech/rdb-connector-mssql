@@ -4,7 +4,6 @@ import java.lang.management.ManagementFactory
 import java.util.UUID
 
 import com.emarsys.rdb.connector.common.models.MetaData
-import com.emarsys.rdb.connector.mssql.MsSqlConnector.MsSqlConnectionConfig
 import com.zaxxer.hikari.HikariPoolMXBean
 import javax.management.{MBeanServer, ObjectName}
 import org.scalatest.mockito.MockitoSugar
@@ -16,30 +15,18 @@ class MsSqlConnectorSpec extends WordSpecLike with Matchers with MockitoSugar {
 
   "MsSqlConnectorSpec" when {
 
-    val exampleConnection = MsSqlConnectionConfig(
-      host = "host",
-      port = 123,
-      dbName = "database",
-      dbUser = "me",
-      dbPassword = "secret",
-      certificate = "cert",
-      connectionParams = ";param1=asd"
-    )
-
     "#createUrl" should {
 
       "creates url from config" in {
-        MsSqlConnector.createUrl(exampleConnection) shouldBe "jdbc:sqlserver://host:123;databaseName=database;param1=asd"
+        MsSqlConnector.createUrl("host", 123, "database", ";param1=asd") shouldBe "jdbc:sqlserver://host:123;databaseName=database;param1=asd"
       }
 
       "handle missing ; in params" in {
-        val exampleWithoutMark = exampleConnection.copy(connectionParams = "param1=asd")
-        MsSqlConnector.createUrl(exampleWithoutMark) shouldBe "jdbc:sqlserver://host:123;databaseName=database;param1=asd"
+        MsSqlConnector.createUrl("host", 123, "database", "param1=asd") shouldBe "jdbc:sqlserver://host:123;databaseName=database;param1=asd"
       }
 
       "handle empty params" in {
-        val exampleWithoutMark = exampleConnection.copy(connectionParams = "")
-        MsSqlConnector.createUrl(exampleWithoutMark) shouldBe "jdbc:sqlserver://host:123;databaseName=database"
+        MsSqlConnector.createUrl("host", 123, "database", "") shouldBe "jdbc:sqlserver://host:123;databaseName=database"
       }
     }
 

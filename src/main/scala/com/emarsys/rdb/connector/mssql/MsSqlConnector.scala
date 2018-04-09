@@ -55,6 +55,13 @@ class MsSqlConnector(
 
 object MsSqlConnector extends MsSqlConnectorTrait {
 
+  def apply(config: MsSqlConnectionConfig,
+            connectorConfig: MsSqlConnectorConfig = defaultConfig
+           )(executor: AsyncExecutor)
+           (implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
+    createMsSqlConnector(config, connectorConfig)(executor)
+  }
+
   case class MsSqlConnectionConfig(
                                     host: String,
                                     port: Int,
@@ -79,8 +86,8 @@ object MsSqlConnector extends MsSqlConnectorTrait {
 
 trait MsSqlConnectorTrait extends ConnectorCompanion {
 
-  def apply(config: MsSqlConnectionConfig,
-            connectorConfig: MsSqlConnectorConfig = defaultConfig
+  protected def createMsSqlConnector(config: MsSqlConnectionConfig,
+            connectorConfig: MsSqlConnectorConfig
            )(executor: AsyncExecutor)
            (implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
 
@@ -94,7 +101,7 @@ trait MsSqlConnectorTrait extends ConnectorCompanion {
 
       val db = {
 
-        val url = createUrl(config)
+        val url = createUrl(config.host, config.port, config.dbName, config.connectionParams)
 
         val customDbConf = ConfigFactory.load()
           .withValue("mssqldb.poolName", ConfigValueFactory.fromAnyRef(poolName))
@@ -124,13 +131,13 @@ trait MsSqlConnectorTrait extends ConnectorCompanion {
     streamChunkSize = 5000
   )
 
-  private def checkConnection(db: Database)(
+  protected def checkConnection(db: Database)(
     implicit executionContext: ExecutionContext): Future[Unit] = {
     db.run(sql"SELECT 1".as[(String)]).map(_ => {})
   }
 
-  private[mssql] def createUrl(config: MsSqlConnectionConfig) = {
-    s"jdbc:sqlserver://${config.host}:${config.port};databaseName=${config.dbName}${safeConnectionParams(config.connectionParams)}"
+  private[mssql] def createUrl(host: String, port: Int, database: String, connectionParams: String) = {
+    s"jdbc:sqlserver://$host:$port;databaseName=$database${safeConnectionParams(connectionParams)}"
   }
 
   private[mssql] def checkSsl(connectionParams: String): Boolean = {

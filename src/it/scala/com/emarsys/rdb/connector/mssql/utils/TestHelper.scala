@@ -32,7 +32,7 @@ object TestHelper {
     prop.setProperty("trustServerCertificate", "false")
     prop.setProperty("trustStore", certPath.get)
 
-    val url = createUrl(TEST_CONNECTION_CONFIG)
+    val url = createUrl(TEST_CONNECTION_CONFIG.host, TEST_CONNECTION_CONFIG.port, TEST_CONNECTION_CONFIG.dbName, TEST_CONNECTION_CONFIG.connectionParams)
 
     Database.forURL(
       url = url,
