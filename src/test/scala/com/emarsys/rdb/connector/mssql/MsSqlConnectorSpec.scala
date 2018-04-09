@@ -3,6 +3,7 @@ package com.emarsys.rdb.connector.mssql
 import java.lang.management.ManagementFactory
 import java.util.UUID
 
+import com.emarsys.rdb.connector.common.models.MetaData
 import com.emarsys.rdb.connector.mssql.MsSqlConnector.MsSqlConnectionConfig
 import com.zaxxer.hikari.HikariPoolMXBean
 import javax.management.{MBeanServer, ObjectName}
@@ -107,6 +108,14 @@ class MsSqlConnectorSpec extends WordSpecLike with Matchers with MockitoSugar {
         val connector = new MsSqlConnector(db, MsSqlConnector.defaultConfig, poolName)
         val metricsJson = connector.innerMetrics().parseJson.asJsObject
         metricsJson.fields.size shouldEqual 0
+      }
+
+    }
+
+    "#meta" should {
+
+      "return mssql qouters" in {
+        MsSqlConnector.meta() shouldEqual MetaData(nameQuoter = "\"", valueQuoter = "'", escape = "'")
       }
 
     }

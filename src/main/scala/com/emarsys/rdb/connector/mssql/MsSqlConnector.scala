@@ -147,5 +147,5 @@ trait MsSqlConnectorTrait extends ConnectorCompanion {
     }
   }
 
-  override def meta(): MetaData = ???
+  override def meta(): MetaData = MetaData("\"", "'", "'")
 }
