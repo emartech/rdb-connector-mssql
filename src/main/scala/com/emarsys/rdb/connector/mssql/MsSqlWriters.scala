@@ -7,8 +7,6 @@ import com.emarsys.rdb.connector.common.models.SimpleSelect
 import com.emarsys.rdb.connector.common.models.SimpleSelect.{FieldName, TableName, Value}
 
 trait MsSqlWriters extends DefaultSqlWriters {
-  override implicit lazy val tableNameWriter: SqlWriter[TableName] = (tableName: TableName) => msSqlNameWrapper(tableName.t)
-  override implicit lazy val fieldNameWriter: SqlWriter[FieldName] = (fieldName: FieldName) => msSqlNameWrapper(fieldName.f)
   override implicit lazy val valueWriter: SqlWriter[Value] = (value: Value) => msSqlValueQuoter(Option(value.v))
 
   override implicit lazy val simpleSelectWriter: SqlWriter[SimpleSelect] = (ss: SimpleSelect) => {
@@ -19,10 +17,6 @@ trait MsSqlWriters extends DefaultSqlWriters {
     val where = ss.where.map(_.toSql).map(" WHERE " + _).getOrElse("")
 
     s"$head$where"
-  }
-
-  protected def msSqlNameWrapper(name: String): String = {
-    s"[$name]"
   }
 
   protected def msSqlValueQuoter(text: Option[String]): String = {

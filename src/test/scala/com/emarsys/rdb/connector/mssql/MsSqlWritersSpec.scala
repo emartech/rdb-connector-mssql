@@ -21,7 +21,7 @@ class MsSqlWritersSpec extends WordSpecLike with Matchers {
           distinct = Some(true)
         )
 
-        select.toSql shouldEqual """SELECT DISTINCT TOP 100 [FI`E'L\D1],[FIELD2],[FIELD3] FROM [TABLE1] WHERE ([FIELD1] IS NULL AND ([FIELD2] IS NULL AND [FIELD3]='VA''LUE3'))"""
+        select.toSql shouldEqual """SELECT DISTINCT TOP 100 "FI`E'L\\D1","FIELD2","FIELD3" FROM "TABLE1" WHERE ("FIELD1" IS NULL AND ("FIELD2" IS NULL AND "FIELD3"='VA''LUE3'))"""
       }
     }
   }
