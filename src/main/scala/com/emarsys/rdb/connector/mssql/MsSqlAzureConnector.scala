@@ -25,7 +25,6 @@ object MsSqlAzureConnector extends MsSqlAzureConnectorTrait {
 
   case class MsSqlAzureConnectionConfig(
                                          host: String,
-                                         port: Int,
                                          dbName: String,
                                          dbUser: String,
                                          dbPassword: String,
@@ -33,7 +32,7 @@ object MsSqlAzureConnector extends MsSqlAzureConnectorTrait {
                                        ) extends ConnectionConfig {
 
     override def toCommonFormat: CommonConnectionReadableData = {
-      CommonConnectionReadableData("mssql-azure", s"$host:$port", dbName, dbUser)
+      CommonConnectionReadableData("mssql-azure", s"$host:1433", dbName, dbUser)
     }
   }
 
@@ -60,7 +59,7 @@ trait MsSqlAzureConnectorTrait extends MsSqlConnectorTrait {
     } else {
       val db = {
 
-        val url = createUrl(config.host, config.port, config.dbName, config.connectionParams)
+        val url = createUrl(config.host, 1433, config.dbName, config.connectionParams)
 
         val customDbConf = ConfigFactory.load()
           .withValue("mssqldb.poolName", ConfigValueFactory.fromAnyRef(poolName))
