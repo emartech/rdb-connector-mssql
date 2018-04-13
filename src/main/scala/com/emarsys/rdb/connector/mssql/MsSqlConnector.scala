@@ -6,6 +6,7 @@ import com.emarsys.rdb.connector.common.models.Errors.{ConnectorError, ErrorWith
 import com.emarsys.rdb.connector.common.ConnectorResponse
 import com.emarsys.rdb.connector.common.models._
 import com.emarsys.rdb.connector.mssql.MsSqlConnector.{MsSqlConnectionConfig, MsSqlConnectorConfig}
+import com.microsoft.sqlserver.jdbc.SQLServerException
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import slick.util.AsyncExecutor
 import slick.jdbc.SQLServerProfile.api._
@@ -120,7 +121,12 @@ trait MsSqlConnectorTrait extends ConnectorCompanion {
       checkConnection(db).map[Either[ConnectorError, MsSqlConnector]] { _ =>
         Right(new MsSqlConnector(db, connectorConfig, poolName))
       }.recover {
-        case _ => Left(ErrorWithMessage("Cannot connect to the sql server"))
+        case err =>
+          if(err.getCause.isInstanceOf[SQLServerException]) {
+            Left(ErrorWithMessage(err.getCause.getMessage))
+          } else {
+            Left(ErrorWithMessage("Cannot connect to the sql server"))
+          }
       }
     }
   }

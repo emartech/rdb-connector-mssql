@@ -7,6 +7,7 @@ import com.emarsys.rdb.connector.common.models.Errors.{ConnectorError, ErrorWith
 import com.emarsys.rdb.connector.common.models.{CommonConnectionReadableData, ConnectionConfig}
 import com.emarsys.rdb.connector.mssql.MsSqlAzureConnector.{MsSqlAzureConnectionConfig, MsSqlAzureConnectorConfig}
 import com.emarsys.rdb.connector.mssql.MsSqlConnector.MsSqlConnectorConfig
+import com.microsoft.sqlserver.jdbc.SQLServerException
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import slick.jdbc.SQLServerProfile.api._
 import slick.util.AsyncExecutor
@@ -77,7 +78,12 @@ trait MsSqlAzureConnectorTrait extends MsSqlConnectorTrait {
       checkConnection(db).map[Either[ConnectorError, MsSqlConnector]] { _ =>
         Right(new MsSqlConnector(db, connectorConfig.toMsSqlConnectorConfig, poolName))
       }.recover {
-        case _ => Left(ErrorWithMessage("Cannot connect to the sql server"))
+        case err =>
+          if(err.getCause.isInstanceOf[SQLServerException]) {
+            Left(ErrorWithMessage(err.getCause.getMessage))
+          } else {
+            Left(ErrorWithMessage("Cannot connect to the sql server"))
+          }
       }
     }
   }
