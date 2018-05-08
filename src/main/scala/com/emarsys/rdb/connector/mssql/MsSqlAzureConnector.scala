@@ -3,11 +3,10 @@ package com.emarsys.rdb.connector.mssql
 import java.util.UUID
 
 import com.emarsys.rdb.connector.common.ConnectorResponse
-import com.emarsys.rdb.connector.common.models.Errors.{ConnectorError, ErrorWithMessage}
+import com.emarsys.rdb.connector.common.models.Errors.{ConnectionConfigError, ConnectionError, ConnectorError}
 import com.emarsys.rdb.connector.common.models.{CommonConnectionReadableData, ConnectionConfig}
 import com.emarsys.rdb.connector.mssql.MsSqlAzureConnector.{MsSqlAzureConnectionConfig, MsSqlAzureConnectorConfig}
 import com.emarsys.rdb.connector.mssql.MsSqlConnector.MsSqlConnectorConfig
-import com.microsoft.sqlserver.jdbc.SQLServerException
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import slick.jdbc.SQLServerProfile.api._
 import slick.util.AsyncExecutor
@@ -54,9 +53,9 @@ trait MsSqlAzureConnectorTrait extends MsSqlConnectorTrait {
     val poolName = UUID.randomUUID.toString
 
     if (!checkSsl(config.connectionParams)) {
-      Future.successful(Left(ErrorWithMessage("SSL Error")))
+      Future.successful(Left(ConnectionConfigError("SSL Error")))
     } else if(!checkAzureUrl(config.host)) {
-      Future.successful(Left(ErrorWithMessage("Wrong Azure SQL host!")))
+      Future.successful(Left(ConnectionConfigError("Wrong Azure SQL host!")))
     } else {
       val db = {
 
@@ -78,12 +77,7 @@ trait MsSqlAzureConnectorTrait extends MsSqlConnectorTrait {
       checkConnection(db).map[Either[ConnectorError, MsSqlConnector]] { _ =>
         Right(new MsSqlConnector(db, connectorConfig.toMsSqlConnectorConfig, poolName))
       }.recover {
-        case err =>
-          if(err.getCause.isInstanceOf[SQLServerException]) {
-            Left(ErrorWithMessage(err.getCause.getMessage))
-          } else {
-            Left(ErrorWithMessage("Cannot connect to the sql server"))
-          }
+        case ex => Left(ConnectionError(ex))
       }
     }
   }

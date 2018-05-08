@@ -5,7 +5,6 @@ import java.sql.{Connection, ResultSet}
 import akka.NotUsed
 import akka.stream.scaladsl.Source
 import com.emarsys.rdb.connector.common.ConnectorResponse
-import com.emarsys.rdb.connector.common.models.Errors.ErrorWithMessage
 import com.emarsys.rdb.connector.common.models.SimpleSelect.FieldName
 import slick.jdbc.SQLServerProfile.api._
 
@@ -30,7 +29,7 @@ trait MsSqlRawSelect extends MsSqlStreamingQuery {
     val query = createShowXmlPlanQuery(rawSql)
     db.run(query)
       .map(_ => Right())
-      .recover { case ex => Left(ErrorWithMessage(ex.getMessage)) }
+      .recover(errorHandler())
   }
 
   private def createShowXmlPlanQuery(rawSql: String) = {
@@ -65,10 +64,7 @@ trait MsSqlRawSelect extends MsSqlStreamingQuery {
 
     db.run(query)
       .map(result => Right(Source(result.toList)))
-      .recover { case ex =>
-        println(ex)
-        Left(ErrorWithMessage(ex.getMessage))
-      }
+      .recover(errorHandler())
 
   }
 

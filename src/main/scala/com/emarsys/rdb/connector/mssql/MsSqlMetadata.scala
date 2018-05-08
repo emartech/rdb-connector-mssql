@@ -1,12 +1,12 @@
 package com.emarsys.rdb.connector.mssql
 
 import com.emarsys.rdb.connector.common.ConnectorResponse
-import com.emarsys.rdb.connector.common.models.Errors.{ErrorWithMessage, TableNotFound}
+import com.emarsys.rdb.connector.common.defaults.SqlWriter._
+import com.emarsys.rdb.connector.common.models.Errors.TableNotFound
 import com.emarsys.rdb.connector.common.models.SimpleSelect.Value
 import com.emarsys.rdb.connector.common.models.TableSchemaDescriptors.{FieldModel, FullTableModel, TableModel}
+import com.emarsys.rdb.connector.mssql.MsSqlWriters._
 import slick.jdbc.MySQLProfile.api._
-import com.emarsys.rdb.connector.common.defaults.SqlWriter._
-import MsSqlWriters._
 
 import scala.concurrent.Future
 
@@ -19,9 +19,7 @@ trait MsSqlMetadata {
     db.run(sql"SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES".as[(String, String)])
       .map(_.map(parseToTableModel))
       .map(Right(_))
-      .recover {
-        case ex => Left(ErrorWithMessage(ex.toString))
-      }
+      .recover(errorHandler())
   }
 
   override def listFields(tableName: String): ConnectorResponse[Seq[FieldModel]] = {
@@ -35,17 +33,16 @@ trait MsSqlMetadata {
         if (result.isEmpty) Left(TableNotFound(tableName))
         else                Right(result)
       )
-      .recover {
-        case ex => Left(ErrorWithMessage(ex.toString))
-      }
+      .recover(errorHandler())
   }
 
   override def listTablesWithFields(): ConnectorResponse[Seq[FullTableModel]] = {
     val futureMap = listAllFields()
-    for {
+    (for {
       tablesE <- listTables()
       map <- futureMap
-    } yield tablesE.map(makeTablesWithFields(_, map))
+    } yield tablesE.map(makeTablesWithFields(_, map)))
+      .recover(errorHandler())
   }
 
   private def listAllFields(): Future[Map[String, Seq[FieldModel]]] = {

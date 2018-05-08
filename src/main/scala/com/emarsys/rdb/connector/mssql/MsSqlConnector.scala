@@ -2,18 +2,16 @@ package com.emarsys.rdb.connector.mssql
 
 import java.util.UUID
 
-import com.emarsys.rdb.connector.common.models.Errors.{ConnectorError, ErrorWithMessage}
 import com.emarsys.rdb.connector.common.ConnectorResponse
+import com.emarsys.rdb.connector.common.models.Errors.{ConnectionConfigError, ConnectionError, ConnectorError}
 import com.emarsys.rdb.connector.common.models._
 import com.emarsys.rdb.connector.mssql.MsSqlConnector.{MsSqlConnectionConfig, MsSqlConnectorConfig}
-import com.microsoft.sqlserver.jdbc.SQLServerException
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
-import slick.util.AsyncExecutor
 import slick.jdbc.SQLServerProfile.api._
+import slick.util.AsyncExecutor
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration._
 import scala.util.Try
 
 class MsSqlConnector(
@@ -23,6 +21,7 @@ class MsSqlConnector(
                     )(
                       implicit val executionContext: ExecutionContext
                     ) extends Connector
+  with MsSqlErrorHandling
   with MsSqlTestConnection
   with MsSqlMetadata
   with MsSqlSimpleSelect
@@ -95,8 +94,10 @@ trait MsSqlConnectorTrait extends ConnectorCompanion {
     val keystoreFilePathO = CertificateUtil.createKeystoreTempFileFromCertificateString(config.certificate)
     val poolName = UUID.randomUUID.toString
 
-    if (keystoreFilePathO.isEmpty || !checkSsl(config.connectionParams)) {
-      Future.successful(Left(ErrorWithMessage("SSL Error")))
+    if (keystoreFilePathO.isEmpty) {
+      Future.successful(Left(ConnectionConfigError("Wrong SSL cert format")))
+    } else if (!checkSsl(config.connectionParams)) {
+      Future.successful(Left(ConnectionConfigError("SSL Error")))
     } else {
       val keystoreFilePath = keystoreFilePathO.get
 
@@ -121,12 +122,7 @@ trait MsSqlConnectorTrait extends ConnectorCompanion {
       checkConnection(db).map[Either[ConnectorError, MsSqlConnector]] { _ =>
         Right(new MsSqlConnector(db, connectorConfig, poolName))
       }.recover {
-        case err =>
-          if(err.getCause.isInstanceOf[SQLServerException]) {
-            Left(ErrorWithMessage(err.getCause.getMessage))
-          } else {
-            Left(ErrorWithMessage("Cannot connect to the sql server"))
-          }
+        case ex => Left(ConnectionError(ex))
       }
     }
   }

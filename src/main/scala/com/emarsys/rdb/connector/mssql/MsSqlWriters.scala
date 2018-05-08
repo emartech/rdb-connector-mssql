@@ -1,10 +1,9 @@
 package com.emarsys.rdb.connector.mssql
 
-import com.emarsys.rdb.connector.common.defaults.{DefaultSqlWriters, SqlWriter}
 import com.emarsys.rdb.connector.common.defaults.SqlWriter._
-
+import com.emarsys.rdb.connector.common.defaults.{DefaultSqlWriters, SqlWriter}
 import com.emarsys.rdb.connector.common.models.SimpleSelect
-import com.emarsys.rdb.connector.common.models.SimpleSelect.{FieldName, TableName, Value}
+import com.emarsys.rdb.connector.common.models.SimpleSelect.Value
 
 trait MsSqlWriters extends DefaultSqlWriters {
   override implicit lazy val valueWriter: SqlWriter[Value] = (value: Value) => msSqlValueQuoter(Option(value.v))

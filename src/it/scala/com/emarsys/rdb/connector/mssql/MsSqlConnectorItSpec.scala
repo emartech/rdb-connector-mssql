@@ -1,6 +1,6 @@
 package com.emarsys.rdb.connector.mssql
 
-import com.emarsys.rdb.connector.common.models.Errors.ErrorWithMessage
+import com.emarsys.rdb.connector.common.models.Errors.{ConnectionConfigError, ConnectionError, ErrorWithMessage}
 import com.emarsys.rdb.connector.mssql.utils.TestHelper
 import org.scalatest.{Matchers, WordSpecLike}
 import slick.util.AsyncExecutor
@@ -30,7 +30,7 @@ class MsSqlConnectorItSpec extends WordSpecLike with Matchers {
         val connectorEither = Await.result(MsSqlConnector(conn)(AsyncExecutor.default()), 5.seconds)
 
         connectorEither shouldBe a [Left[_,_]]
-        connectorEither.left.get shouldBe an [ErrorWithMessage]
+        connectorEither.left.get shouldBe a [ConnectionError]
       }
 
       "connect fail when wrong user" in {
@@ -38,7 +38,7 @@ class MsSqlConnectorItSpec extends WordSpecLike with Matchers {
         val connectorEither = Await.result(MsSqlConnector(conn)(AsyncExecutor.default()), 5.seconds)
 
         connectorEither shouldBe a [Left[_,_]]
-        connectorEither.left.get shouldBe an [ErrorWithMessage]
+        connectorEither.left.get shouldBe a [ConnectionError]
       }
 
       "connect fail when wrong password" in {
@@ -46,21 +46,21 @@ class MsSqlConnectorItSpec extends WordSpecLike with Matchers {
         val connectorEither = Await.result(MsSqlConnector(conn)(AsyncExecutor.default()), 5.seconds)
 
         connectorEither shouldBe a [Left[_,_]]
-        connectorEither.left.get shouldBe an [ErrorWithMessage]
+        connectorEither.left.get shouldBe a [ConnectionError]
       }
 
       "connect fail when wrong certificate" in {
         val conn = testConnection.copy(certificate = "")
         val connectorEither = Await.result(MsSqlConnector(conn)(AsyncExecutor.default()), 5.seconds)
 
-        connectorEither shouldBe Left(ErrorWithMessage("SSL Error"))
+        connectorEither shouldBe Left(ConnectionConfigError("Wrong SSL cert format"))
       }
 
       "connect fail when ssl disabled" in {
         val conn = testConnection.copy(connectionParams = "encrypt=false")
         val connectorEither = Await.result(MsSqlConnector(conn)(AsyncExecutor.default()), 5.seconds)
 
-        connectorEither shouldBe Left(ErrorWithMessage("SSL Error"))
+        connectorEither shouldBe Left(ConnectionConfigError("SSL Error"))
       }
 
     }

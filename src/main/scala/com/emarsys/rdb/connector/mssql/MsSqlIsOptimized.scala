@@ -1,9 +1,9 @@
 package com.emarsys.rdb.connector.mssql
 
 import com.emarsys.rdb.connector.common.ConnectorResponse
-import com.emarsys.rdb.connector.common.models.SimpleSelect.{TableName, Value}
 import com.emarsys.rdb.connector.common.defaults.SqlWriter._
-import MsSqlWriters._
+import com.emarsys.rdb.connector.common.models.SimpleSelect.Value
+import com.emarsys.rdb.connector.mssql.MsSqlWriters._
 import slick.jdbc.SQLServerProfile.api._
 
 import scala.concurrent.Future
@@ -27,7 +27,7 @@ trait MsSqlIsOptimized {
           .map(_.exists(indexGroup => indexGroup.toSet == fieldSet || Set(indexGroup.head) == fieldSet))
           .map(Right(_))
 
-      case Left(tableNotFound) => Future.successful(Left(tableNotFound))
+      case Left(error) => Future.successful(Left(error))
     }
   }
 }

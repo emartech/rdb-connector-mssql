@@ -1,15 +1,14 @@
 package com.emarsys.rdb.connector.mssql
 
 import com.emarsys.rdb.connector.common.ConnectorResponse
-import com.emarsys.rdb.connector.common.models.DataManipulation.{Criteria, FieldValueWrapper, Record, UpdateDefinition}
-import com.emarsys.rdb.connector.common.models.Errors.ErrorWithMessage
-import com.emarsys.rdb.connector.common.models.SimpleSelect._
-
-import scala.concurrent.Future
 import com.emarsys.rdb.connector.common.defaults.SqlWriter._
 import com.emarsys.rdb.connector.common.models.DataManipulation.FieldValueWrapper.NullValue
+import com.emarsys.rdb.connector.common.models.DataManipulation.{Criteria, FieldValueWrapper, Record, UpdateDefinition}
+import com.emarsys.rdb.connector.common.models.SimpleSelect._
 import com.emarsys.rdb.connector.mssql.MsSqlWriters._
 import slick.jdbc.MySQLProfile.api._
+
+import scala.concurrent.Future
 
 trait MsSqlRawDataManipulation {
   self: MsSqlConnector =>
@@ -30,9 +29,7 @@ trait MsSqlRawDataManipulation {
 
       db.run(DBIO.sequence(queries).transactionally)
         .map(results => Right(results.sum))
-        .recover {
-          case ex => Left(ErrorWithMessage(ex.toString))
-        }
+        .recover(errorHandler())
     }
   }
 
@@ -43,9 +40,7 @@ trait MsSqlRawDataManipulation {
     } else {
       db.run(sqlu"#${createInsertQuery(tableName, definitions)}")
         .map(result => Right(result))
-        .recover {
-          case ex => Left(ErrorWithMessage(ex.toString))
-        }
+        .recover(errorHandler())
     }
   }
 
@@ -59,9 +54,7 @@ trait MsSqlRawDataManipulation {
 
       db.run(query)
         .map(result => Right(result))
-        .recover {
-          case ex => Left(ErrorWithMessage(ex.toString))
-        }
+        .recover(errorHandler())
     }
   }
 
@@ -80,9 +73,7 @@ trait MsSqlRawDataManipulation {
           )
         )
       )
-      .recover {
-        case ex => Left(ErrorWithMessage(ex.toString))
-      }
+      .recover(errorHandler())
   }
 
   private def createInsertQuery(tableName: String, definitions: Seq[Record]) = {
