@@ -58,9 +58,7 @@ trait MsSqlAzureConnectorTrait extends MsSqlConnectorTrait {
       Future.successful(Left(ConnectionConfigError("Wrong Azure SQL host!")))
     } else {
       val db = {
-
         val url = createUrl(config.host, 1433, config.dbName, config.connectionParams)
-
         val customDbConf = ConfigFactory.load()
           .withValue("mssqldb.poolName", ConfigValueFactory.fromAnyRef(poolName))
           .withValue("mssqldb.registerMbeans", ConfigValueFactory.fromAnyRef(true))
@@ -78,6 +76,11 @@ trait MsSqlAzureConnectorTrait extends MsSqlConnectorTrait {
         Right(new MsSqlConnector(db, connectorConfig.toMsSqlConnectorConfig, poolName))
       }.recover {
         case ex => Left(ConnectionError(ex))
+      }.map {
+        case Left(e) =>
+          db.shutdown
+          Left(e)
+        case r => r
       }
     }
   }

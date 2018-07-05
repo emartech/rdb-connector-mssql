@@ -102,9 +102,7 @@ trait MsSqlConnectorTrait extends ConnectorCompanion {
       val keystoreFilePath = keystoreFilePathO.get
 
       val db = {
-
         val url = createUrl(config.host, config.port, config.dbName, config.connectionParams)
-
         val customDbConf = ConfigFactory.load()
           .withValue("mssqldb.poolName", ConfigValueFactory.fromAnyRef(poolName))
           .withValue("mssqldb.registerMbeans", ConfigValueFactory.fromAnyRef(true))
@@ -123,6 +121,11 @@ trait MsSqlConnectorTrait extends ConnectorCompanion {
         Right(new MsSqlConnector(db, connectorConfig, poolName))
       }.recover {
         case ex => Left(ConnectionError(ex))
+      }.map {
+        case Left(e) =>
+          db.shutdown
+          Left(e)
+        case r => r
       }
     }
   }
