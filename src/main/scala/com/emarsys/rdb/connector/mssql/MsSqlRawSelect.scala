@@ -68,9 +68,9 @@ trait MsSqlRawSelect extends MsSqlStreamingQuery {
 
   }
 
-  private def runProjectedSelectWith[R](rawSql: String, fields: Seq[String], allowNullFieldValue: Boolean, queryRunner: String => R) = {
+  private def runProjectedSelectWith[R](rawSql: String, fields: Seq[String], limit: Option[Int], allowNullFieldValue: Boolean, queryRunner: String => R) = {
     val fieldList = concatenateProjection(fields)
-    val projectedSql = wrapInProjection(rawSql, fieldList)
+    val projectedSql = wrapInProjectionWithLimit(rawSql, fieldList, limit)
     val query =
       if (!allowNullFieldValue) wrapInCondition(projectedSql, fields)
       else projectedSql
@@ -78,11 +78,11 @@ trait MsSqlRawSelect extends MsSqlStreamingQuery {
     queryRunner(query)
   }
 
-  override def projectedRawSelect(rawSql: String, fields: Seq[String], allowNullFieldValue: Boolean): ConnectorResponse[Source[Seq[String], NotUsed]] =
-    runProjectedSelectWith(rawSql, fields, allowNullFieldValue, streamingQuery)
+  override def projectedRawSelect(rawSql: String, fields: Seq[String], limit: Option[Int], allowNullFieldValue: Boolean): ConnectorResponse[Source[Seq[String], NotUsed]] =
+    runProjectedSelectWith(rawSql, fields, limit, allowNullFieldValue, streamingQuery)
 
   override def validateProjectedRawSelect(rawSql: String, fields: Seq[String]): ConnectorResponse[Unit] = {
-    runProjectedSelectWith(rawSql, fields, allowNullFieldValue = true, validateRawSelect)
+    runProjectedSelectWith(rawSql, fields, None, allowNullFieldValue = true, validateRawSelect)
   }
 
   private def concatenateProjection(fields: Seq[String]) =
@@ -97,8 +97,10 @@ trait MsSqlRawSelect extends MsSqlStreamingQuery {
   private def concatenateCondition(fields: Seq[String]) =
     " WHERE " + fields.map("t." + FieldName(_).toSql + " IS NOT NULL ").mkString("AND ")
 
-  private def wrapInProjection(rawSql: String, projection: String) =
-    s"SELECT $projection FROM ( ${removeEndingSemicolons(rawSql)} ) t"
+  private def wrapInProjectionWithLimit(rawSql: String, projection: String, limit: Option[Int]) = {
+    val limitSql = limit.map(l => s"TOP $l").getOrElse("")
+    s"SELECT $limitSql $projection FROM ( ${removeEndingSemicolons(rawSql)} ) t"
+  }
 
   @tailrec
   private def removeEndingSemicolons(query: String): String = {
