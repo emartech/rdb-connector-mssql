@@ -23,11 +23,12 @@ trait MsSqlMetadata {
   }
 
   override def listFields(tableName: String): ConnectorResponse[Seq[FieldModel]] = {
+    val tableNameAsValue = Value(tableName).toSql
     db.run(
-      sql"""SELECT c.name, t.Name
+      sql"""SELECT c.name as col_name, t.Name as col_type
             FROM sys.columns c
             INNER JOIN sys.types t ON c.user_type_id = t.user_type_id
-            WHERE c.object_id = OBJECT_ID(#${Value(tableName).toSql})""".as[(String, String)])
+            WHERE c.object_id = OBJECT_ID(#$tableNameAsValue) OR OBJECT_NAME(c.object_id) = #$tableNameAsValue""".as[(String, String)])
       .map(_.map(parseToFieldModel))
       .map(result =>
         if (result.isEmpty) Left(TableNotFound(tableName))
