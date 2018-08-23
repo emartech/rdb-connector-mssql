@@ -19,7 +19,7 @@ libraryDependencies ++= {
   val scalaTestV = "3.0.1"
   val slickV = "3.2.0"
   Seq(
-    "com.github.emartech"     %  "rdb-connector-common" % "e5041bd219",
+    "com.github.emartech"     %  "rdb-connector-common" % "1d19e2d9bd",
     "com.typesafe.slick"      %% "slick"                % slickV,
     "com.typesafe.slick"      %% "slick-hikaricp"       % slickV,
     "org.scalatest"           %% "scalatest"            % scalaTestV   % Test,
