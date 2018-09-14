@@ -29,7 +29,7 @@ trait MsSqlRawDataManipulation {
 
       db.run(DBIO.sequence(queries).transactionally)
         .map(results => Right(results.sum))
-        .recover(errorHandler())
+        .recover(eitherErrorHandler())
     }
   }
 
@@ -40,7 +40,7 @@ trait MsSqlRawDataManipulation {
     } else {
       db.run(sqlu"#${createInsertQuery(tableName, definitions)}")
         .map(result => Right(result))
-        .recover(errorHandler())
+        .recover(eitherErrorHandler())
     }
   }
 
@@ -54,7 +54,7 @@ trait MsSqlRawDataManipulation {
 
       db.run(query)
         .map(result => Right(result))
-        .recover(errorHandler())
+        .recover(eitherErrorHandler())
     }
   }
 
@@ -73,7 +73,7 @@ trait MsSqlRawDataManipulation {
           )
         )
       )
-      .recover(errorHandler())
+      .recover(eitherErrorHandler())
   }
 
   private def createInsertQuery(tableName: String, definitions: Seq[Record]) = {

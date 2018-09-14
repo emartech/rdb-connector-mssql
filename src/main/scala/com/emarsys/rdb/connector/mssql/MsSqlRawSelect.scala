@@ -23,14 +23,14 @@ trait MsSqlRawSelect extends MsSqlStreamingQuery {
     val limitedQuery = limit.fold(query) { l =>
       wrapInLimit(query, l)
     }
-    streamingQuery(limitedQuery)
+    streamingQuery(timeout)(limitedQuery)
   }
 
   override def validateRawSelect(rawSql: String): ConnectorResponse[Unit] = {
     val query = createShowXmlPlanQuery(rawSql)
     db.run(query)
       .map(_ => Right())
-      .recover(errorHandler())
+      .recover(eitherErrorHandler())
   }
 
   private def createShowXmlPlanQuery(rawSql: String) = {
@@ -65,7 +65,7 @@ trait MsSqlRawSelect extends MsSqlStreamingQuery {
 
     db.run(query)
       .map(result => Right(Source(result.toList)))
-      .recover(errorHandler())
+      .recover(eitherErrorHandler())
 
   }
 
@@ -80,7 +80,7 @@ trait MsSqlRawSelect extends MsSqlStreamingQuery {
   }
 
   override def projectedRawSelect(rawSql: String, fields: Seq[String], limit: Option[Int], timeout: FiniteDuration, allowNullFieldValue: Boolean): ConnectorResponse[Source[Seq[String], NotUsed]] =
-    runProjectedSelectWith(rawSql, fields, limit, allowNullFieldValue, streamingQuery)
+    runProjectedSelectWith(rawSql, fields, limit, allowNullFieldValue, streamingQuery(timeout))
 
   override def validateProjectedRawSelect(rawSql: String, fields: Seq[String]): ConnectorResponse[Unit] = {
     runProjectedSelectWith(rawSql, fields, None, allowNullFieldValue = true, validateRawSelect)

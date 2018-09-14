@@ -19,7 +19,7 @@ trait MsSqlMetadata {
     db.run(sql"SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES".as[(String, String)])
       .map(_.map(parseToTableModel))
       .map(Right(_))
-      .recover(errorHandler())
+      .recover(eitherErrorHandler())
   }
 
   override def listFields(tableName: String): ConnectorResponse[Seq[FieldModel]] = {
@@ -34,7 +34,7 @@ trait MsSqlMetadata {
         if (result.isEmpty) Left(TableNotFound(tableName))
         else                Right(result)
       )
-      .recover(errorHandler())
+      .recover(eitherErrorHandler())
   }
 
   override def listTablesWithFields(): ConnectorResponse[Seq[FullTableModel]] = {
@@ -43,7 +43,7 @@ trait MsSqlMetadata {
       tablesE <- listTables()
       map <- futureMap
     } yield tablesE.map(makeTablesWithFields(_, map)))
-      .recover(errorHandler())
+      .recover(eitherErrorHandler())
   }
 
   private def listAllFields(): Future[Map[String, Seq[FieldModel]]] = {
