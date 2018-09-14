@@ -9,6 +9,7 @@ import com.emarsys.rdb.connector.common.models.SimpleSelect.FieldName
 import slick.jdbc.SQLServerProfile.api._
 
 import scala.annotation.tailrec
+import scala.concurrent.duration.FiniteDuration
 
 trait MsSqlRawSelect extends MsSqlStreamingQuery {
   self: MsSqlConnector =>
@@ -17,7 +18,7 @@ trait MsSqlRawSelect extends MsSqlStreamingQuery {
   import com.emarsys.rdb.connector.common.defaults.SqlWriter._
 
 
-  override def rawSelect(rawSql: String, limit: Option[Int]): ConnectorResponse[Source[Seq[String], NotUsed]] = {
+  override def rawSelect(rawSql: String, limit: Option[Int], timeout: FiniteDuration): ConnectorResponse[Source[Seq[String], NotUsed]] = {
     val query = removeEndingSemicolons(rawSql)
     val limitedQuery = limit.fold(query) { l =>
       wrapInLimit(query, l)
@@ -78,7 +79,7 @@ trait MsSqlRawSelect extends MsSqlStreamingQuery {
     queryRunner(query)
   }
 
-  override def projectedRawSelect(rawSql: String, fields: Seq[String], limit: Option[Int], allowNullFieldValue: Boolean): ConnectorResponse[Source[Seq[String], NotUsed]] =
+  override def projectedRawSelect(rawSql: String, fields: Seq[String], limit: Option[Int], timeout: FiniteDuration, allowNullFieldValue: Boolean): ConnectorResponse[Source[Seq[String], NotUsed]] =
     runProjectedSelectWith(rawSql, fields, limit, allowNullFieldValue, streamingQuery)
 
   override def validateProjectedRawSelect(rawSql: String, fields: Seq[String]): ConnectorResponse[Unit] = {
