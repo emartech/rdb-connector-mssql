@@ -35,6 +35,7 @@ class MsSqlConnector(
 
   override def innerMetrics(): String = {
     import java.lang.management.ManagementFactory
+
     import com.zaxxer.hikari.HikariPoolMXBean
     import javax.management.{JMX, ObjectName}
     Try {
@@ -55,10 +56,12 @@ class MsSqlConnector(
 
 object MsSqlConnector extends MsSqlConnectorTrait {
 
-  def apply(config: MsSqlConnectionConfig, connectorConfig: MsSqlConnectorConfig = defaultConfig)(
-      executor: AsyncExecutor
-  )(implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
-    createMsSqlConnector(config, connectorConfig)(executor)
+  def apply(
+      config: MsSqlConnectionConfig,
+      connectorConfig: MsSqlConnectorConfig = defaultConfig,
+      configPath: String = "mssqldb"
+  )(executor: AsyncExecutor)(implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
+    createMsSqlConnector(config, configPath, connectorConfig)(executor)
   }
 
   case class MsSqlConnectionConfig(
@@ -85,10 +88,11 @@ object MsSqlConnector extends MsSqlConnectorTrait {
 
 trait MsSqlConnectorTrait extends ConnectorCompanion {
 
-  protected def createMsSqlConnector(config: MsSqlConnectionConfig, connectorConfig: MsSqlConnectorConfig)(
-      executor: AsyncExecutor
-  )(implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
-
+  protected def createMsSqlConnector(
+      config: MsSqlConnectionConfig,
+      configPath: String,
+      connectorConfig: MsSqlConnectorConfig
+  )(executor: AsyncExecutor)(implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
     val keystoreFilePathO = CertificateUtil.createKeystoreTempFileFromCertificateString(config.certificate)
     val poolName          = UUID.randomUUID.toString
 
@@ -103,17 +107,18 @@ trait MsSqlConnectorTrait extends ConnectorCompanion {
         val url = createUrl(config.host, config.port, config.dbName, config.connectionParams)
         val customDbConf = ConfigFactory
           .load()
-          .withValue("mssqldb.poolName", ConfigValueFactory.fromAnyRef(poolName))
-          .withValue("mssqldb.registerMbeans", ConfigValueFactory.fromAnyRef(true))
-          .withValue("mssqldb.properties.url", ConfigValueFactory.fromAnyRef(url))
-          .withValue("mssqldb.properties.user", ConfigValueFactory.fromAnyRef(config.dbUser))
-          .withValue("mssqldb.properties.password", ConfigValueFactory.fromAnyRef(config.dbPassword))
-          .withValue("mssqldb.properties.driver", ConfigValueFactory.fromAnyRef("slick.jdbc.SQLServerProfile"))
-          .withValue("mssqldb.properties.properties.encrypt", ConfigValueFactory.fromAnyRef("true"))
-          .withValue("mssqldb.properties.properties.trustServerCertificate", ConfigValueFactory.fromAnyRef("false"))
-          .withValue("mssqldb.properties.properties.trustStore", ConfigValueFactory.fromAnyRef(keystoreFilePath))
+          .getConfig(configPath)
+          .withValue("poolName", ConfigValueFactory.fromAnyRef(poolName))
+          .withValue("registerMbeans", ConfigValueFactory.fromAnyRef(true))
+          .withValue("properties.url", ConfigValueFactory.fromAnyRef(url))
+          .withValue("properties.user", ConfigValueFactory.fromAnyRef(config.dbUser))
+          .withValue("properties.password", ConfigValueFactory.fromAnyRef(config.dbPassword))
+          .withValue("properties.driver", ConfigValueFactory.fromAnyRef("slick.jdbc.SQLServerProfile"))
+          .withValue("properties.properties.encrypt", ConfigValueFactory.fromAnyRef("true"))
+          .withValue("properties.properties.trustServerCertificate", ConfigValueFactory.fromAnyRef("false"))
+          .withValue("properties.properties.trustStore", ConfigValueFactory.fromAnyRef(keystoreFilePath))
 
-        Database.forConfig("mssqldb", customDbConf)
+        Database.forConfig("", customDbConf)
       }
 
       checkConnection(db)
