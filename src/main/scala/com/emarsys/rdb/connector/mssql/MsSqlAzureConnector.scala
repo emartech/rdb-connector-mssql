@@ -16,10 +16,12 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object MsSqlAzureConnector extends MsSqlAzureConnectorTrait {
 
-  def apply(config: MsSqlAzureConnectionConfig, connectorConfig: MsSqlAzureConnectorConfig = defaultAzureConfig)(
-      executor: AsyncExecutor
-  )(implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
-    createMsSqlAzureConnector(config, connectorConfig)(executor)
+  def apply(
+      config: MsSqlAzureConnectionConfig,
+      connectorConfig: MsSqlAzureConnectorConfig = defaultAzureConfig,
+      configPath: String = "mssqldb"
+  )(executor: AsyncExecutor)(implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
+    createMsSqlAzureConnector(config, configPath, connectorConfig)(executor)
   }
 
   case class MsSqlAzureConnectionConfig(
@@ -29,24 +31,20 @@ object MsSqlAzureConnector extends MsSqlAzureConnectorTrait {
       dbPassword: String,
       connectionParams: String
   ) extends ConnectionConfig {
-
     override def toCommonFormat: CommonConnectionReadableData = {
       CommonConnectionReadableData("mssql-azure", s"$host:1433", dbName, dbUser)
     }
   }
 
-  case class MsSqlAzureConnectorConfig(
-      queryTimeout: FiniteDuration,
-      streamChunkSize: Int
-  ) {
+  case class MsSqlAzureConnectorConfig(queryTimeout: FiniteDuration, streamChunkSize: Int) {
     def toMsSqlConnectorConfig = MsSqlConnectorConfig(queryTimeout, streamChunkSize)
   }
-
 }
 
 trait MsSqlAzureConnectorTrait extends MsSqlConnectorTrait {
   protected def createMsSqlAzureConnector(
       config: MsSqlAzureConnectionConfig,
+      configPath: String,
       connectorConfig: MsSqlAzureConnectorConfig
   )(executor: AsyncExecutor)(implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
     val poolName = UUID.randomUUID.toString
@@ -60,16 +58,17 @@ trait MsSqlAzureConnectorTrait extends MsSqlConnectorTrait {
         val url = createUrl(config.host, 1433, config.dbName, config.connectionParams)
         val customDbConf = ConfigFactory
           .load()
-          .withValue("mssqldb.poolName", ConfigValueFactory.fromAnyRef(poolName))
-          .withValue("mssqldb.registerMbeans", ConfigValueFactory.fromAnyRef(true))
-          .withValue("mssqldb.properties.url", ConfigValueFactory.fromAnyRef(url))
-          .withValue("mssqldb.properties.user", ConfigValueFactory.fromAnyRef(config.dbUser))
-          .withValue("mssqldb.properties.password", ConfigValueFactory.fromAnyRef(config.dbPassword))
-          .withValue("mssqldb.properties.driver", ConfigValueFactory.fromAnyRef("slick.jdbc.SQLServerProfile"))
-          .withValue("mssqldb.properties.properties.encrypt", ConfigValueFactory.fromAnyRef("true"))
-          .withValue("mssqldb.properties.properties.trustServerCertificate", ConfigValueFactory.fromAnyRef("false"))
+          .getConfig(configPath)
+          .withValue("poolName", ConfigValueFactory.fromAnyRef(poolName))
+          .withValue("registerMbeans", ConfigValueFactory.fromAnyRef(true))
+          .withValue("properties.url", ConfigValueFactory.fromAnyRef(url))
+          .withValue("properties.user", ConfigValueFactory.fromAnyRef(config.dbUser))
+          .withValue("properties.password", ConfigValueFactory.fromAnyRef(config.dbPassword))
+          .withValue("properties.driver", ConfigValueFactory.fromAnyRef("slick.jdbc.SQLServerProfile"))
+          .withValue("properties.properties.encrypt", ConfigValueFactory.fromAnyRef("true"))
+          .withValue("properties.properties.trustServerCertificate", ConfigValueFactory.fromAnyRef("false"))
 
-        Database.forConfig("mssqldb", customDbConf)
+        Database.forConfig("", customDbConf)
       }
 
       checkConnection(db)
