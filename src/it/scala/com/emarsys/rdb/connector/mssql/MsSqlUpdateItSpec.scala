@@ -6,7 +6,7 @@ import akka.testkit.TestKit
 import com.emarsys.rdb.connector.mssql.utils.SelectDbInitHelper
 import com.emarsys.rdb.connector.test.UpdateItSpec
 
-class MsSqlUpdateItSpec  extends TestKit(ActorSystem()) with UpdateItSpec with SelectDbInitHelper {
+class MsSqlUpdateItSpec extends TestKit(ActorSystem()) with UpdateItSpec with SelectDbInitHelper {
   val aTableName: String = tableName
   val bTableName: String = s"temp_$uuid"
 

@@ -14,12 +14,12 @@ object TestHelper {
 
   lazy val TEST_CONNECTION_CONFIG = MsSqlConnectionConfig(
     host = config.getString("dbconf.host"),
-    port= config.getString("dbconf.port").toInt,
-    dbName= config.getString("dbconf.dbName"),
-    dbUser= config.getString("dbconf.user"),
-    dbPassword= config.getString("dbconf.password"),
-    certificate= config.getString("dbconf.certificate"),
-    connectionParams= config.getString("dbconf.connectionParams")
+    port = config.getString("dbconf.port").toInt,
+    dbName = config.getString("dbconf.dbName"),
+    dbUser = config.getString("dbconf.user"),
+    dbPassword = config.getString("dbconf.password"),
+    certificate = config.getString("dbconf.certificate"),
+    connectionParams = config.getString("dbconf.connectionParams")
   )
 
   private lazy val executor = AsyncExecutor.default()
@@ -32,7 +32,12 @@ object TestHelper {
     prop.setProperty("trustServerCertificate", "false")
     prop.setProperty("trustStore", certPath.get)
 
-    val url = createUrl(TEST_CONNECTION_CONFIG.host, TEST_CONNECTION_CONFIG.port, TEST_CONNECTION_CONFIG.dbName, TEST_CONNECTION_CONFIG.connectionParams)
+    val url = createUrl(
+      TEST_CONNECTION_CONFIG.host,
+      TEST_CONNECTION_CONFIG.port,
+      TEST_CONNECTION_CONFIG.dbName,
+      TEST_CONNECTION_CONFIG.connectionParams
+    )
 
     Database.forURL(
       url = url,

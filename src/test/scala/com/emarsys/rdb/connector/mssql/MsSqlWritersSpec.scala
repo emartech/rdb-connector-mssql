@@ -16,7 +16,14 @@ class MsSqlWritersSpec extends WordSpecLike with Matchers {
         val select = SimpleSelect(
           fields = SpecificFields(Seq(FieldName("""FI`E'L\D1"""), FieldName("FIELD2"), FieldName("FIELD3"))),
           table = TableName("TABLE1"),
-          where = Some(And(Seq(IsNull(FieldName("FIELD1")), And(Seq(IsNull(FieldName("FIELD2")), EqualToValue(FieldName("FIELD3"), Value("VA'LUE3"))))))),
+          where = Some(
+            And(
+              Seq(
+                IsNull(FieldName("FIELD1")),
+                And(Seq(IsNull(FieldName("FIELD2")), EqualToValue(FieldName("FIELD3"), Value("VA'LUE3"))))
+              )
+            )
+          ),
           limit = Some(100),
           distinct = Some(true)
         )

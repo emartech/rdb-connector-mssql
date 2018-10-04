@@ -16,20 +16,19 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object MsSqlAzureConnector extends MsSqlAzureConnectorTrait {
 
-  def apply(config: MsSqlAzureConnectionConfig,
-            connectorConfig: MsSqlAzureConnectorConfig = defaultAzureConfig
-           )(executor: AsyncExecutor)
-           (implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
+  def apply(config: MsSqlAzureConnectionConfig, connectorConfig: MsSqlAzureConnectorConfig = defaultAzureConfig)(
+      executor: AsyncExecutor
+  )(implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
     createMsSqlAzureConnector(config, connectorConfig)(executor)
   }
 
   case class MsSqlAzureConnectionConfig(
-                                         host: String,
-                                         dbName: String,
-                                         dbUser: String,
-                                         dbPassword: String,
-                                         connectionParams: String
-                                       ) extends ConnectionConfig {
+      host: String,
+      dbName: String,
+      dbUser: String,
+      dbPassword: String,
+      connectionParams: String
+  ) extends ConnectionConfig {
 
     override def toCommonFormat: CommonConnectionReadableData = {
       CommonConnectionReadableData("mssql-azure", s"$host:1433", dbName, dbUser)
@@ -37,29 +36,30 @@ object MsSqlAzureConnector extends MsSqlAzureConnectorTrait {
   }
 
   case class MsSqlAzureConnectorConfig(
-                                        queryTimeout: FiniteDuration,
-                                        streamChunkSize: Int
-                                      ) {
+      queryTimeout: FiniteDuration,
+      streamChunkSize: Int
+  ) {
     def toMsSqlConnectorConfig = MsSqlConnectorConfig(queryTimeout, streamChunkSize)
   }
 
 }
 
 trait MsSqlAzureConnectorTrait extends MsSqlConnectorTrait {
-  protected def createMsSqlAzureConnector(config: MsSqlAzureConnectionConfig,
-                     connectorConfig: MsSqlAzureConnectorConfig
-                    )(executor: AsyncExecutor)
-                    (implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
+  protected def createMsSqlAzureConnector(
+      config: MsSqlAzureConnectionConfig,
+      connectorConfig: MsSqlAzureConnectorConfig
+  )(executor: AsyncExecutor)(implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
     val poolName = UUID.randomUUID.toString
 
     if (!checkSsl(config.connectionParams)) {
       Future.successful(Left(ConnectionConfigError("SSL Error")))
-    } else if(!checkAzureUrl(config.host)) {
+    } else if (!checkAzureUrl(config.host)) {
       Future.successful(Left(ConnectionConfigError("Wrong Azure SQL host!")))
     } else {
       val db = {
         val url = createUrl(config.host, 1433, config.dbName, config.connectionParams)
-        val customDbConf = ConfigFactory.load()
+        val customDbConf = ConfigFactory
+          .load()
           .withValue("mssqldb.poolName", ConfigValueFactory.fromAnyRef(poolName))
           .withValue("mssqldb.registerMbeans", ConfigValueFactory.fromAnyRef(true))
           .withValue("mssqldb.properties.url", ConfigValueFactory.fromAnyRef(url))
@@ -72,16 +72,19 @@ trait MsSqlAzureConnectorTrait extends MsSqlConnectorTrait {
         Database.forConfig("mssqldb", customDbConf)
       }
 
-      checkConnection(db).map[Either[ConnectorError, MsSqlConnector]] { _ =>
-        Right(new MsSqlConnector(db, connectorConfig.toMsSqlConnectorConfig, poolName))
-      }.recover {
-        case ex => Left(ConnectionError(ex))
-      }.map {
-        case Left(e) =>
-          db.shutdown
-          Left(e)
-        case r => r
-      }
+      checkConnection(db)
+        .map[Either[ConnectorError, MsSqlConnector]] { _ =>
+          Right(new MsSqlConnector(db, connectorConfig.toMsSqlConnectorConfig, poolName))
+        }
+        .recover {
+          case ex => Left(ConnectionError(ex))
+        }
+        .map {
+          case Left(e) =>
+            db.shutdown
+            Left(e)
+          case r => r
+        }
     }
   }
 

@@ -11,7 +11,8 @@ import scala.concurrent.Await
 
 class MsSqlMetadataItSpec extends MetadataItSpec {
 
-  val connector: Connector = Await.result(MsSqlConnector(TestHelper.TEST_CONNECTION_CONFIG)(AsyncExecutor.default()), 5.seconds).right.get
+  val connector: Connector =
+    Await.result(MsSqlConnector(TestHelper.TEST_CONNECTION_CONFIG)(AsyncExecutor.default()), 5.seconds).right.get
 
   def initDb(): Unit = {
     val createTableSql = s"""CREATE TABLE [$tableName] (
@@ -32,15 +33,18 @@ class MsSqlMetadataItSpec extends MetadataItSpec {
   }
 
   def cleanUpDb(): Unit = {
-    val dropViewSql = s"""DROP VIEW [$viewName];"""
-    val dropTableSql = s"""DROP TABLE [$tableName];"""
-    val dropViewSql2 = s"""IF OBJECT_ID('${viewName}_2', 'V') IS NOT NULL DROP VIEW [${viewName}_2];"""
+    val dropViewSql   = s"""DROP VIEW [$viewName];"""
+    val dropTableSql  = s"""DROP TABLE [$tableName];"""
+    val dropViewSql2  = s"""IF OBJECT_ID('${viewName}_2', 'V') IS NOT NULL DROP VIEW [${viewName}_2];"""
     val dropTableSql2 = s"""IF OBJECT_ID('${tableName}_2', 'U') IS NOT NULL DROP TABLE [${tableName}_2];"""
-    Await.result(for {
-      _ <- TestHelper.executeQuery(dropViewSql)
-      _ <- TestHelper.executeQuery(dropTableSql)
-      _ <- TestHelper.executeQuery(dropViewSql2)
-      _ <- TestHelper.executeQuery(dropTableSql2)
-    } yield (), 5.seconds)
+    Await.result(
+      for {
+        _ <- TestHelper.executeQuery(dropViewSql)
+        _ <- TestHelper.executeQuery(dropTableSql)
+        _ <- TestHelper.executeQuery(dropViewSql2)
+        _ <- TestHelper.executeQuery(dropTableSql2)
+      } yield (),
+      5.seconds
+    )
   }
 }

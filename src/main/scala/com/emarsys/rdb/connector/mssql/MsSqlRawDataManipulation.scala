@@ -19,7 +19,6 @@ trait MsSqlRawDataManipulation {
     } else {
       val table = TableName(tableName).toSql
       val queries = definitions.map { definition =>
-
         val setPart = createSetQueryPart(definition.update)
 
         val wherePart = createConditionQueryPart(definition.search).toSql
@@ -32,7 +31,6 @@ trait MsSqlRawDataManipulation {
         .recover(eitherErrorHandler())
     }
   }
-
 
   override def rawInsertData(tableName: String, definitions: Seq[Record]): ConnectorResponse[Int] = {
     if (definitions.isEmpty) {
@@ -48,9 +46,9 @@ trait MsSqlRawDataManipulation {
     if (criteria.isEmpty) {
       Future.successful(Right(0))
     } else {
-      val table = TableName(tableName).toSql
+      val table     = TableName(tableName).toSql
       val condition = Or(criteria.map(createConditionQueryPart)).toSql
-      val query = sqlu"DELETE FROM #$table WHERE #$condition"
+      val query     = sqlu"DELETE FROM #$table WHERE #$condition"
 
       db.run(query)
         .map(result => Right(result))
@@ -59,19 +57,19 @@ trait MsSqlRawDataManipulation {
   }
 
   override def rawReplaceData(tableName: String, definitions: Seq[Record]): ConnectorResponse[Int] = {
-    val newTableName = generateTempTableName(tableName)
-    val newTable = TableName(newTableName).toSql
-    val table = TableName(tableName).toSql
+    val newTableName     = generateTempTableName(tableName)
+    val newTable         = TableName(newTableName).toSql
+    val table            = TableName(tableName).toSql
     val createTableQuery = sqlu"SELECT * INTO #$newTable FROM #$table WHERE 1=0"
-    val dropTableQuery = sqlu"IF OBJECT_ID(#${Value(newTableName).toSql}, 'U') IS NOT NULL DROP TABLE #$newTable;"
+    val dropTableQuery   = sqlu"IF OBJECT_ID(#${Value(newTableName).toSql}, 'U') IS NOT NULL DROP TABLE #$newTable;"
 
     db.run(createTableQuery)
-      .flatMap(_ =>
-        rawInsertData(newTableName, definitions).flatMap(insertedCount =>
-          swapTableNames(tableName, newTableName).flatMap(_ =>
-            db.run(dropTableQuery).map(_ => insertedCount)
+      .flatMap(
+        _ =>
+          rawInsertData(newTableName, definitions).flatMap(
+            insertedCount =>
+              swapTableNames(tableName, newTableName).flatMap(_ => db.run(dropTableQuery).map(_ => insertedCount))
           )
-        )
       )
       .recover(eitherErrorHandler())
   }
@@ -79,7 +77,7 @@ trait MsSqlRawDataManipulation {
   private def createInsertQuery(tableName: String, definitions: Seq[Record]) = {
     val table = TableName(tableName).toSql
 
-    val fields = definitions.head.keySet.toSeq
+    val fields    = definitions.head.keySet.toSeq
     val fieldList = fields.map(FieldName(_).toSql).mkString("(", ",", ")")
     val valueList = makeSqlValueList(orderValues(definitions, fields))
 
@@ -88,7 +86,7 @@ trait MsSqlRawDataManipulation {
 
   private def swapTableNames(tableName: String, newTableName: String) = {
     val temporaryTableName = generateTempTableName()
-    val tablePairs = Seq((tableName, temporaryTableName), (newTableName, tableName), (temporaryTableName, newTableName))
+    val tablePairs         = Seq((tableName, temporaryTableName), (newTableName, tableName), (temporaryTableName, newTableName))
     val query = DBIO.sequence(tablePairs.map {
       case (tableA, tableB) => sqlu"sp_rename #${Value(tableA).toSql}, #${Value(tableB).toSql}";
     })
@@ -98,7 +96,7 @@ trait MsSqlRawDataManipulation {
 
   private def generateTempTableName(original: String = ""): String = {
     val shortedName = if (original.length > 30) original.take(30) else original
-    val id = java.util.UUID.randomUUID().toString.replace("-", "").take(30)
+    val id          = java.util.UUID.randomUUID().toString.replace("-", "").take(30)
     shortedName + "_" + id
   }
 
@@ -110,7 +108,8 @@ trait MsSqlRawDataManipulation {
     import com.emarsys.rdb.connector.common.defaults.FieldValueConverter._
     import fieldValueConverters._
 
-    data.map(_.map(_.toSimpleSelectValue.map(_.toSql).getOrElse("NULL")).mkString(", "))
+    data
+      .map(_.map(_.toSimpleSelectValue.map(_.toSql).getOrElse("NULL")).mkString(", "))
       .mkString("(", "),(", ")")
   }
 
@@ -118,20 +117,28 @@ trait MsSqlRawDataManipulation {
     import com.emarsys.rdb.connector.common.defaults.FieldValueConverter._
     import fieldValueConverters._
 
-    And(criteria.mapValues(_.toSimpleSelectValue).map {
-      case (field, Some(value)) => EqualToValue(FieldName(field), value)
-      case (field, None) => IsNull(FieldName(field))
-    }.toList)
+    And(
+      criteria
+        .mapValues(_.toSimpleSelectValue)
+        .map {
+          case (field, Some(value)) => EqualToValue(FieldName(field), value)
+          case (field, None)        => IsNull(FieldName(field))
+        }
+        .toList
+    )
   }
 
   private def createSetQueryPart(criteria: Map[String, FieldValueWrapper]) = {
     import com.emarsys.rdb.connector.common.defaults.FieldValueConverter._
     import fieldValueConverters._
 
-    criteria.mapValues(_.toSimpleSelectValue).map {
-      case (field, Some(value)) => EqualToValue(FieldName(field), value).toSql
-      case (field, None) => FieldName(field).toSql + "=NULL"
-    }.mkString(", ")
+    criteria
+      .mapValues(_.toSimpleSelectValue)
+      .map {
+        case (field, Some(value)) => EqualToValue(FieldName(field), value).toSql
+        case (field, None)        => FieldName(field).toSql + "=NULL"
+      }
+      .mkString(", ")
   }
 
 }

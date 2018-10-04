@@ -15,19 +15,19 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 class MsSqlConnector(
-                      protected val db: Database,
-                      protected val connectorConfig: MsSqlConnectorConfig,
-                      protected val poolName: String
-                    )(
-                      implicit val executionContext: ExecutionContext
-                    ) extends Connector
-  with MsSqlErrorHandling
-  with MsSqlTestConnection
-  with MsSqlMetadata
-  with MsSqlSimpleSelect
-  with MsSqlRawSelect
-  with MsSqlIsOptimized
-  with MsSqlRawDataManipulation {
+    protected val db: Database,
+    protected val connectorConfig: MsSqlConnectorConfig,
+    protected val poolName: String
+)(
+    implicit val executionContext: ExecutionContext
+) extends Connector
+    with MsSqlErrorHandling
+    with MsSqlTestConnection
+    with MsSqlMetadata
+    with MsSqlSimpleSelect
+    with MsSqlRawSelect
+    with MsSqlIsOptimized
+    with MsSqlRawDataManipulation {
 
   override protected val fieldValueConverters = MsSqlFieldValueConverters
 
@@ -38,9 +38,9 @@ class MsSqlConnector(
     import com.zaxxer.hikari.HikariPoolMXBean
     import javax.management.{JMX, ObjectName}
     Try {
-      val mBeanServer = ManagementFactory.getPlatformMBeanServer
+      val mBeanServer    = ManagementFactory.getPlatformMBeanServer
       val poolObjectName = new ObjectName(s"com.zaxxer.hikari:type=Pool ($poolName)")
-      val poolProxy = JMX.newMXBeanProxy(mBeanServer, poolObjectName, classOf[HikariPoolMXBean])
+      val poolProxy      = JMX.newMXBeanProxy(mBeanServer, poolObjectName, classOf[HikariPoolMXBean])
 
       s"""{
          |"activeConnections": ${poolProxy.getActiveConnections},
@@ -55,22 +55,21 @@ class MsSqlConnector(
 
 object MsSqlConnector extends MsSqlConnectorTrait {
 
-  def apply(config: MsSqlConnectionConfig,
-            connectorConfig: MsSqlConnectorConfig = defaultConfig
-           )(executor: AsyncExecutor)
-           (implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
+  def apply(config: MsSqlConnectionConfig, connectorConfig: MsSqlConnectorConfig = defaultConfig)(
+      executor: AsyncExecutor
+  )(implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
     createMsSqlConnector(config, connectorConfig)(executor)
   }
 
   case class MsSqlConnectionConfig(
-                                    host: String,
-                                    port: Int,
-                                    dbName: String,
-                                    dbUser: String,
-                                    dbPassword: String,
-                                    certificate: String,
-                                    connectionParams: String
-                                  ) extends ConnectionConfig {
+      host: String,
+      port: Int,
+      dbName: String,
+      dbUser: String,
+      dbPassword: String,
+      certificate: String,
+      connectionParams: String
+  ) extends ConnectionConfig {
 
     override def toCommonFormat: CommonConnectionReadableData = {
       CommonConnectionReadableData("mssql", s"$host:$port", dbName, dbUser)
@@ -78,21 +77,20 @@ object MsSqlConnector extends MsSqlConnectorTrait {
   }
 
   case class MsSqlConnectorConfig(
-                                   queryTimeout: FiniteDuration,
-                                   streamChunkSize: Int
-                                 )
+      queryTimeout: FiniteDuration,
+      streamChunkSize: Int
+  )
 
 }
 
 trait MsSqlConnectorTrait extends ConnectorCompanion {
 
-  protected def createMsSqlConnector(config: MsSqlConnectionConfig,
-            connectorConfig: MsSqlConnectorConfig
-           )(executor: AsyncExecutor)
-           (implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
+  protected def createMsSqlConnector(config: MsSqlConnectionConfig, connectorConfig: MsSqlConnectorConfig)(
+      executor: AsyncExecutor
+  )(implicit executionContext: ExecutionContext): ConnectorResponse[MsSqlConnector] = {
 
     val keystoreFilePathO = CertificateUtil.createKeystoreTempFileFromCertificateString(config.certificate)
-    val poolName = UUID.randomUUID.toString
+    val poolName          = UUID.randomUUID.toString
 
     if (keystoreFilePathO.isEmpty) {
       Future.successful(Left(ConnectionConfigError("Wrong SSL cert format")))
@@ -103,7 +101,8 @@ trait MsSqlConnectorTrait extends ConnectorCompanion {
 
       val db = {
         val url = createUrl(config.host, config.port, config.dbName, config.connectionParams)
-        val customDbConf = ConfigFactory.load()
+        val customDbConf = ConfigFactory
+          .load()
           .withValue("mssqldb.poolName", ConfigValueFactory.fromAnyRef(poolName))
           .withValue("mssqldb.registerMbeans", ConfigValueFactory.fromAnyRef(true))
           .withValue("mssqldb.properties.url", ConfigValueFactory.fromAnyRef(url))
@@ -117,27 +116,28 @@ trait MsSqlConnectorTrait extends ConnectorCompanion {
         Database.forConfig("mssqldb", customDbConf)
       }
 
-      checkConnection(db).map[Either[ConnectorError, MsSqlConnector]] { _ =>
-        Right(new MsSqlConnector(db, connectorConfig, poolName))
-      }.recover {
-        case ex => Left(ConnectionError(ex))
-      }.map {
-        case Left(e) =>
-          db.shutdown
-          Left(e)
-        case r => r
-      }
+      checkConnection(db)
+        .map[Either[ConnectorError, MsSqlConnector]] { _ =>
+          Right(new MsSqlConnector(db, connectorConfig, poolName))
+        }
+        .recover {
+          case ex => Left(ConnectionError(ex))
+        }
+        .map {
+          case Left(e) =>
+            db.shutdown
+            Left(e)
+          case r => r
+        }
     }
   }
-
 
   val defaultConfig = MsSqlConnectorConfig(
     queryTimeout = 20.minutes,
     streamChunkSize = 5000
   )
 
-  protected def checkConnection(db: Database)(
-    implicit executionContext: ExecutionContext): Future[Unit] = {
+  protected def checkConnection(db: Database)(implicit executionContext: ExecutionContext): Future[Unit] = {
     db.run(sql"SELECT 1".as[(String)]).map(_ => {})
   }
 

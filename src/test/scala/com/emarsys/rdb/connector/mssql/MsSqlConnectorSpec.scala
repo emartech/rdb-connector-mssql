@@ -76,13 +76,13 @@ class MsSqlConnectorSpec extends WordSpecLike with Matchers with MockitoSugar {
         }
 
         val poolName = UUID.randomUUID.toString
-        val db = mock[Database]
+        val db       = mock[Database]
 
-        val mbs: MBeanServer = ManagementFactory.getPlatformMBeanServer()
+        val mbs: MBeanServer      = ManagementFactory.getPlatformMBeanServer()
         val mBeanName: ObjectName = new ObjectName(s"com.zaxxer.hikari:type=Pool ($poolName)")
         mbs.registerMBean(mxPool, mBeanName)
 
-        val connector = new MsSqlConnector(db, MsSqlConnector.defaultConfig, poolName)
+        val connector   = new MsSqlConnector(db, MsSqlConnector.defaultConfig, poolName)
         val metricsJson = connector.innerMetrics().parseJson.asJsObject
 
         metricsJson.fields.size shouldEqual 4
@@ -90,9 +90,9 @@ class MsSqlConnectorSpec extends WordSpecLike with Matchers with MockitoSugar {
       }
 
       "return Json in sad case" in {
-        val db = mock[Database]
-        val poolName = ""
-        val connector = new MsSqlConnector(db, MsSqlConnector.defaultConfig, poolName)
+        val db          = mock[Database]
+        val poolName    = ""
+        val connector   = new MsSqlConnector(db, MsSqlConnector.defaultConfig, poolName)
         val metricsJson = connector.innerMetrics().parseJson.asJsObject
         metricsJson.fields.size shouldEqual 0
       }

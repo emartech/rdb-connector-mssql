@@ -20,8 +20,11 @@ class MsSqlInsertSpec extends TestKit(ActorSystem()) with InsertItSpec with Sele
     super.afterAll()
   }
 
-  val simpleSelectExisting = SimpleSelect(AllField, TableName(tableName),
+  val simpleSelectExisting = SimpleSelect(
+    AllField,
+    TableName(tableName),
     where = Some(
       EqualToValue(FieldName("A1"), Value("v1"))
-    ))
+    )
+  )
 }

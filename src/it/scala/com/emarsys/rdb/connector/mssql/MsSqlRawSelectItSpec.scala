@@ -9,7 +9,13 @@ import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.concurrent.ExecutionContextExecutor
 
-class MsSqlRawSelectItSpec extends TestKit(ActorSystem()) with RawSelectItSpec with SelectDbInitHelper with WordSpecLike with Matchers with BeforeAndAfterAll{
+class MsSqlRawSelectItSpec
+    extends TestKit(ActorSystem())
+    with RawSelectItSpec
+    with SelectDbInitHelper
+    with WordSpecLike
+    with Matchers
+    with BeforeAndAfterAll {
 
   implicit val materializer: Materializer = ActorMaterializer()
 
@@ -25,8 +31,8 @@ class MsSqlRawSelectItSpec extends TestKit(ActorSystem()) with RawSelectItSpec w
     initDb()
   }
 
-  override val simpleSelect = s"SELECT * FROM [$aTableName];"
-  override val badSimpleSelect = s"SELECT * ForM [$aTableName]"
+  override val simpleSelect            = s"SELECT * FROM [$aTableName];"
+  override val badSimpleSelect         = s"SELECT * ForM [$aTableName]"
   override val simpleSelectNoSemicolon = s"""SELECT * FROM [$aTableName]"""
 
   "#analyzeRawSelect" should {
