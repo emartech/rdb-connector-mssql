@@ -12,6 +12,7 @@ services:
     ports:
       - "1433:1433"
     volumes:
-      - ./mssql/mssql.conf:/var/opt/mssql/mssql.conf:ro
-      - ./mssql/mssql_db.key:/etc/ssl/private/mssql.key:ro
-      - ./mssql/mssql_db.pem:/etc/ssl/certs/mssql.pem:ro
+    - ./mssql/mssql.conf:/var/opt/mssql/mssql.conf:ro
+    - ./mssql/mssql_db.key:/etc/ssl/private/mssql.key:ro
+    - ./mssql/mssql_db.pem:/etc/ssl/certs/mssql.pem:ro
+    - ./mssql/setup.sql:/usr/config/setup.sql
