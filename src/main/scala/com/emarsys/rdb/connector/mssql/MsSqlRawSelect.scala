@@ -32,7 +32,7 @@ trait MsSqlRawSelect extends MsSqlStreamingQuery {
   override def validateRawSelect(rawSql: String): ConnectorResponse[Unit] = {
     val query = createShowXmlPlanQuery(rawSql)
     db.run(query)
-      .map(_ => Right())
+      .map(_ => Right({}))
       .recover(eitherErrorHandler())
   }
 

@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, Materializer}
 import akka.testkit.TestKit
 import com.emarsys.rdb.connector.mssql.utils.SelectDbInitHelper
-import com.emarsys.rdb.connector.test.RawSelectItSpec
+import com.emarsys.rdb.connector.test._
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.concurrent.ExecutionContextExecutor
@@ -37,7 +37,7 @@ class MsSqlRawSelectItSpec
 
   "#analyzeRawSelect" should {
     "return result" in {
-      val result = getStreamResult(connector.analyzeRawSelect(simpleSelect))
+      val result = getConnectorResult(connector.analyzeRawSelect(simpleSelect), awaitTimeout)
 
       result.size shouldEqual 2
       result.head shouldEqual Seq("Microsoft SQL Server 2005 XML Showplan")

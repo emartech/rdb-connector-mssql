@@ -1,6 +1,6 @@
 package com.emarsys.rdb.connector.mssql
 
-import com.emarsys.rdb.connector.common.models.Errors.{ConnectionConfigError, ConnectionError, ErrorWithMessage}
+import com.emarsys.rdb.connector.common.models.Errors.{ConnectionConfigError, ConnectionError}
 import com.emarsys.rdb.connector.mssql.utils.TestHelper
 import org.scalatest.{Matchers, WordSpecLike}
 import slick.util.AsyncExecutor
