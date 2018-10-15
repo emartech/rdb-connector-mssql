@@ -51,7 +51,7 @@ class MsSqlConnectorItSpec
         val connectorEither = Await.result(MsSqlConnector(conn)(AsyncExecutor.default()), 5.seconds)
 
         connectorEither shouldBe a[Left[_, _]]
-        connectorEither.left.get shouldBe a[ConnectionError]
+        connectorEither.left.get shouldBe an[ErrorWithMessage]
       }
 
       "connect fail when wrong password" in {
@@ -59,7 +59,7 @@ class MsSqlConnectorItSpec
         val connectorEither = Await.result(MsSqlConnector(conn)(AsyncExecutor.default()), 5.seconds)
 
         connectorEither shouldBe a[Left[_, _]]
-        connectorEither.left.get shouldBe a[ConnectionError]
+        connectorEither.left.get shouldBe an[ErrorWithMessage]
       }
 
       "connect fail when wrong certificate" in {

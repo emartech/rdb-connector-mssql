@@ -3,7 +3,7 @@ package com.emarsys.rdb.connector.mssql
 import java.util.UUID
 
 import com.emarsys.rdb.connector.common.ConnectorResponse
-import com.emarsys.rdb.connector.common.models.Errors.{ConnectionConfigError, ConnectionError, ConnectorError}
+import com.emarsys.rdb.connector.common.models.Errors.{ConnectionConfigError, ConnectorError}
 import com.emarsys.rdb.connector.common.models._
 import com.emarsys.rdb.connector.mssql.MsSqlConnector.{MsSqlConnectionConfig, MsSqlConnectorConfig}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
@@ -86,7 +86,7 @@ object MsSqlConnector extends MsSqlConnectorTrait {
 
 }
 
-trait MsSqlConnectorTrait extends ConnectorCompanion {
+trait MsSqlConnectorTrait extends ConnectorCompanion with MsSqlErrorHandling {
 
   protected def createMsSqlConnector(
       config: MsSqlConnectionConfig,
@@ -125,9 +125,7 @@ trait MsSqlConnectorTrait extends ConnectorCompanion {
         .map[Either[ConnectorError, MsSqlConnector]] { _ =>
           Right(new MsSqlConnector(db, connectorConfig, poolName))
         }
-        .recover {
-          case ex => Left(ConnectionError(ex))
-        }
+        .recover(eitherErrorHandler())
         .map {
           case Left(e) =>
             db.shutdown
