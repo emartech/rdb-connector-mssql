@@ -26,6 +26,7 @@ trait MsSqlErrorHandling {
     case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_PERMISSION_DENIED        => AccessDeniedError(ex.getMessage)
     case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_INVALID_OBJECT_NAME      => TableNotFound(ex.getMessage)
     case ex: SQLTransientConnectionException if connectionErrors.contains(ex.getSQLState) => ConnectionError(ex)
+    case ex: SQLTransientConnectionException                                              => ErrorWithMessage(s"[${ex.getSQLState}] - ${ex.getMessage}")
     case ex: Exception                                                                    => ErrorWithMessage(ex.getMessage)
   }
 
