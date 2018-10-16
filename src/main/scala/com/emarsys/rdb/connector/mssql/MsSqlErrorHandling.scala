@@ -1,6 +1,6 @@
 package com.emarsys.rdb.connector.mssql
 
-import java.sql.SQLTransientConnectionException
+import java.sql.SQLException
 
 import akka.NotUsed
 import akka.stream.scaladsl.Source
@@ -21,13 +21,13 @@ trait MsSqlErrorHandling {
   )
 
   protected def errorHandler(): PartialFunction[Throwable, ConnectorError] = {
-    case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_QUERY_CANCELLED          => QueryTimeout(ex.getMessage)
-    case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_SYNTAX_ERROR             => SqlSyntaxError(ex.getMessage)
-    case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_PERMISSION_DENIED        => AccessDeniedError(ex.getMessage)
-    case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_INVALID_OBJECT_NAME      => TableNotFound(ex.getMessage)
-    case ex: SQLTransientConnectionException if connectionErrors.contains(ex.getSQLState) => ConnectionError(ex)
-    case ex: SQLTransientConnectionException                                              => ErrorWithMessage(s"[${ex.getSQLState}] - ${ex.getMessage}")
-    case ex: Exception                                                                    => ErrorWithMessage(ex.getMessage)
+    case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_QUERY_CANCELLED     => QueryTimeout(ex.getMessage)
+    case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_SYNTAX_ERROR        => SqlSyntaxError(ex.getMessage)
+    case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_PERMISSION_DENIED   => AccessDeniedError(ex.getMessage)
+    case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_INVALID_OBJECT_NAME => TableNotFound(ex.getMessage)
+    case ex: SQLException if connectionErrors.contains(ex.getSQLState)               => ConnectionError(ex)
+    case ex: SQLException                                                            => ErrorWithMessage(s"[${ex.getSQLState}] - ${ex.getMessage}")
+    case ex: Exception                                                               => ErrorWithMessage(ex.getMessage)
   }
 
   protected def eitherErrorHandler[T](): PartialFunction[Throwable, Either[ConnectorError, T]] =
