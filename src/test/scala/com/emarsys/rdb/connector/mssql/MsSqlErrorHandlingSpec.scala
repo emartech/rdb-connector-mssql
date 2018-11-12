@@ -1,32 +1,60 @@
 package com.emarsys.rdb.connector.mssql
 
 import java.sql.SQLException
+import java.util.concurrent.RejectedExecutionException
 
-import com.emarsys.rdb.connector.common.models.Errors.{ConnectorError, ErrorWithMessage}
+import com.emarsys.rdb.connector.common.models.Errors._
+import com.microsoft.sqlserver.jdbc.SQLServerException
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, PrivateMethodTester, WordSpecLike}
-
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
 
 class MsSqlErrorHandlingSpec extends WordSpecLike with Matchers with MockitoSugar with PrivateMethodTester {
 
   "ErrorHandling" should {
 
-    "handle unexpected SqlException" in {
+    val possibleSQLErrorsCodes = Seq(
+      ("HY008", "query cancelled", QueryTimeout("msg")),
+      ("S0001", "sql syntax error", SqlSyntaxError("msg")),
+      ("S0005", "permission denied", AccessDeniedError("msg")),
+      ("S0002", "invalid object name", TableNotFound("msg"))
+    )
 
-      implicit val executionContext = concurrent.ExecutionContext.Implicits.global
+    val possibleConnectionErrors = Seq(
+      ("08S01", "bad host error")
+    )
 
-      val eitherErrorHandler =
-        PrivateMethod[PartialFunction[Throwable, Either[ConnectorError, String]]]('eitherErrorHandler)
-      val handler        = new MsSqlErrorHandling {}
-      val unknownFailure = new SQLException("not-handled-message", "not-handled-state", new Exception(""))
-      val timeout        = 1.second
+    possibleSQLErrorsCodes.foreach(
+      errorWithResponse =>
+        s"""convert ${errorWithResponse._2} to ${errorWithResponse._3.getClass.getSimpleName}""" in new MsSqlErrorHandling {
+          val error = new SQLServerException("msg", errorWithResponse._1, 0, new Exception())
+          eitherErrorHandler().apply(error) shouldEqual Left(errorWithResponse._3)
+        }
+    )
 
-      handler invokePrivate eitherErrorHandler()
+    possibleConnectionErrors.foreach(
+      errorCode =>
+        s"""convert ${errorCode._2} to ConnectionError""" in new MsSqlErrorHandling {
+          val error = new SQLException("msg", errorCode._1)
+          eitherErrorHandler().apply(error) shouldEqual Left(ConnectionError(error))
+        }
+    )
 
-      Await.result(Future.failed(unknownFailure).recover(handler invokePrivate eitherErrorHandler()), timeout) shouldBe
+    "convert RejectedExecutionException to TooManyQueries" in new MsSqlErrorHandling {
+      val error = new RejectedExecutionException()
+      eitherErrorHandler().apply(error) shouldBe
+        Left(TooManyQueries)
+    }
+
+    "handle unexpected SqlException" in new MsSqlErrorHandling {
+      val error = new SQLException("not-handled-message", "not-handled-state")
+      eitherErrorHandler().apply(error) shouldBe
         Left(ErrorWithMessage("[not-handled-state] - not-handled-message"))
+    }
+
+    "handle unexpected exception" in new MsSqlErrorHandling {
+      val error = new Exception("not-handled-message")
+      eitherErrorHandler().apply(error) shouldBe
+        Left(ErrorWithMessage("not-handled-message"))
     }
   }
 }

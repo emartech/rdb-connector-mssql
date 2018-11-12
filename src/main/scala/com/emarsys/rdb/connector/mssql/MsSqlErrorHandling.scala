@@ -1,6 +1,7 @@
 package com.emarsys.rdb.connector.mssql
 
 import java.sql.SQLException
+import java.util.concurrent.RejectedExecutionException
 
 import akka.NotUsed
 import akka.stream.scaladsl.Source
@@ -21,6 +22,7 @@ trait MsSqlErrorHandling {
   )
 
   protected def errorHandler(): PartialFunction[Throwable, ConnectorError] = {
+    case _: RejectedExecutionException                                               => TooManyQueries
     case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_QUERY_CANCELLED     => QueryTimeout(ex.getMessage)
     case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_SYNTAX_ERROR        => SqlSyntaxError(ex.getMessage)
     case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_PERMISSION_DENIED   => AccessDeniedError(ex.getMessage)
