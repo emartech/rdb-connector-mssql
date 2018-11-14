@@ -22,7 +22,7 @@ trait MsSqlErrorHandling {
   )
 
   protected def errorHandler(): PartialFunction[Throwable, ConnectorError] = {
-    case _: RejectedExecutionException                                               => TooManyQueries
+    case ex: RejectedExecutionException                                              => TooManyQueries(ex.getMessage)
     case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_QUERY_CANCELLED     => QueryTimeout(ex.getMessage)
     case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_SYNTAX_ERROR        => SqlSyntaxError(ex.getMessage)
     case ex: SQLServerException if ex.getSQLState == MSSQL_STATE_PERMISSION_DENIED   => AccessDeniedError(ex.getMessage)

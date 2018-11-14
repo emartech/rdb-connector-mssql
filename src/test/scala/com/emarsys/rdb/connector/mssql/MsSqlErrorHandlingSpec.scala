@@ -40,9 +40,9 @@ class MsSqlErrorHandlingSpec extends WordSpecLike with Matchers with MockitoSuga
     )
 
     "convert RejectedExecutionException to TooManyQueries" in new MsSqlErrorHandling {
-      val error = new RejectedExecutionException()
+      val error = new RejectedExecutionException("msg")
       eitherErrorHandler().apply(error) shouldBe
-        Left(TooManyQueries)
+        Left(TooManyQueries("msg"))
     }
 
     "handle unexpected SqlException" in new MsSqlErrorHandling {
